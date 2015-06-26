@@ -1,16 +1,18 @@
-require 'test/app/inventory_item/events'
-
 module Test
   module App
     module InventoryItem
-      class Aggregate < ::AggregateRoot
+      class Root
+        include ::AggregateRoot
+
+        attr_reader :id, :name, :deactivated
+
         def create(id, name)
           apply_change(InventoryItem::Created.new(id, name))
         end
 
         def deactivate
-          fail "already deactivated" if(!@activated)
-          apply_change(InventoryItem::Deactivated.new(@id)
+          fail "already deactivated" if @activated
+          apply_change(InventoryItem::Deactivated.new(@id))
         end
 
         def rename(name)
@@ -31,7 +33,7 @@ module Test
         end
 
         def on_renamed(event)
-          @name = event.name
+          @name = event.new_name
         end
       end
     end

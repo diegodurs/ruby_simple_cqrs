@@ -1,10 +1,18 @@
 require 'active_support/core_ext/string'
 
-class AggregateRoot
-  attr_reader :id, :version
+module AggregateRoot
 
-  # uncommitted_changes should be locked when apply_change is called
-  attr_reader :uncommitted_changes
+  def self.included(base)
+    base.send(:attr_reader, :id)
+  end
+
+  def version
+    @version ||= -1
+  end
+
+  def uncommitted_changes
+    @uncommitted_changes ||= []
+  end
 
   def mark_changes_as_committed
     @uncommitted_changes = []
@@ -13,19 +21,19 @@ class AggregateRoot
 
   def load_from_history(history)
     history.each do |event|
-      if event.version != @version + 1
-        raise EventsOutOfOrderException.new(@id)
+      if event.version != version + 1
+        raise 'EventsOutOfOrderException'
       end
-      apply_change(e, false)
+      apply_change(event, false)
     end
     self
   end
 
   def apply_change(event, is_new = true)
     mutex.synchronize do
-      send("on_#{event.class.underscore}", event)
+      send("on_#{event.class.name.demodulize.underscore}", event)
       if is_new
-        @uncommitted_changes << event
+        self.uncommitted_changes << event
       else
         @version += 1
         @id = event.id # wtf ?

@@ -13,17 +13,17 @@ class Repository
       fail 'no id' if e.id.nil?
 
       e.version = aggregate.version + (i + 1)
-      e.timestamp = Time.now.to_utc.to_i
+      e.timestamp = Time.now.utc.to_i
 
       @event_store.save(e)
-      publisher.publish(e)
+      @publisher.publish(e)
     end
 
     aggregate.mark_changes_as_committed
   end
 
   def load(id)
-    aggregate = AggregateFactory.create_aggregate(self.class)
+    aggregate = initialize_aggregate
 
     history = @event_store.get(id, -1)
     fail 'aggregate not found' if history.empty?

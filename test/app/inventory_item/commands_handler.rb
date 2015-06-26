@@ -1,5 +1,8 @@
 require 'active_support/core_ext/string'
 
+# This is the mapping between command (possibly serialized) and domain methods
+# it allows the domain to be kept clean for the extraction of command's arguments.
+# It also manage aggregate version
 module Test
   module App
     module InventoryItem
@@ -9,20 +12,21 @@ module Test
         end
 
         def handle(command)
-          send(command.class.name.underscore)
+          send(command.class.name.demodulize.underscore, command)
         end
 
         private
 
         def create(command)
-          item = InventoryItem.new(command.id, command.name)
+          item = InventoryItem::Root.new
+          item.create(command.id, command.name)
 
           @repository.save(item, -1)
         end
 
         def rename(command)
           item = @repository.find(command.id)
-          item.rename(command.name)
+          item.rename(command.new_name)
 
           @repository.save(item, command.original_version)
         end
